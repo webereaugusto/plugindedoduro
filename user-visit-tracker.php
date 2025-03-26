@@ -334,7 +334,8 @@ function af_generate_general_report() {
     $users_data = $wpdb->get_results($query);
 
     // Gerar conteúdo do relatório
-    $report_content = "RELATÓRIO GERAL DE ACESSOS DE FRANQUEADOS\n";
+    $report_content = "\xEF\xBB\xBF"; // Adicionar BOM UTF-8
+    $report_content .= "RELATÓRIO GERAL DE ACESSOS DE FRANQUEADOS\n";
     $report_content .= "Data de geração: " . date_i18n('d/m/Y H:i:s') . "\n\n";
     
     // Cabeçalho da tabela
@@ -356,8 +357,8 @@ function af_generate_general_report() {
             ? date_i18n('d/m/Y H:i', strtotime($user->first_visit))
             : 'Nunca acessou';
 
-        $report_content .= str_pad(substr($user->display_name, 0, 29), 30);
-        $report_content .= str_pad(substr($user->user_email, 0, 34), 35);
+        $report_content .= str_pad(mb_substr($user->display_name, 0, 29, 'UTF-8'), 30);
+        $report_content .= str_pad(mb_substr($user->user_email, 0, 34, 'UTF-8'), 35);
         $report_content .= str_pad($last_visit, 20);
         $report_content .= str_pad($first_visit, 20);
         $report_content .= str_pad($user->total_sessions ?: '0', 10);
@@ -379,7 +380,7 @@ function af_generate_general_report() {
     $report_content .= "Total de páginas visitadas: " . ($totals->total_pageviews ?: '0') . "\n";
 
     // Configurar headers para download
-    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Type: text/plain; charset=UTF-8');
     header('Content-Disposition: attachment; filename="relatorio_acessos_' . date('Y-m-d_His') . '.txt"');
     header('Pragma: no-cache');
     header('Expires: 0');
@@ -409,7 +410,8 @@ function af_generate_detailed_report() {
     );
 
     // Gerar conteúdo do relatório
-    $report_content = "RELATÓRIO DETALHADO DE ACESSOS DE FRANQUEADOS\n";
+    $report_content = "\xEF\xBB\xBF"; // Adicionar BOM UTF-8
+    $report_content .= "RELATÓRIO DETALHADO DE ACESSOS DE FRANQUEADOS\n";
     $report_content .= "Data de geração: " . date_i18n('d/m/Y H:i:s') . "\n";
     $report_content .= str_repeat("=", 100) . "\n\n";
 
@@ -488,7 +490,7 @@ function af_generate_detailed_report() {
     $report_content .= "Total de páginas visitadas: " . ($totals->total_pageviews ?: '0') . "\n";
 
     // Configurar headers para download
-    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Type: text/plain; charset=UTF-8');
     header('Content-Disposition: attachment; filename="relatorio_detalhado_' . date('Y-m-d_His') . '.txt"');
     header('Pragma: no-cache');
     header('Expires: 0');
@@ -530,7 +532,8 @@ function af_generate_inactive_report() {
     $inactive_users = $wpdb->get_results($query);
 
     // Gerar conteúdo do relatório
-    $report_content = "RELATÓRIO DE FUJÕES - FRANQUEADOS INATIVOS\n";
+    $report_content = "\xEF\xBB\xBF"; // Adicionar BOM UTF-8
+    $report_content .= "RELATÓRIO DE FUJÕES - FRANQUEADOS INATIVOS\n";
     $report_content .= "Data de geração: " . date_i18n('d/m/Y H:i:s') . "\n";
     $report_content .= "Período analisado: últimos " . $days . " dias\n";
     $report_content .= str_repeat("=", 100) . "\n\n";
@@ -551,8 +554,8 @@ function af_generate_inactive_report() {
             ? $user->days_inactive 
             : 'N/A';
 
-        $report_content .= str_pad(substr($user->display_name, 0, 29), 30);
-        $report_content .= str_pad(substr($user->user_email, 0, 34), 35);
+        $report_content .= str_pad(mb_substr($user->display_name, 0, 29, 'UTF-8'), 30);
+        $report_content .= str_pad(mb_substr($user->user_email, 0, 34, 'UTF-8'), 35);
         $report_content .= str_pad($last_visit, 20);
         $report_content .= $days_inactive . "\n";
     }
@@ -562,7 +565,7 @@ function af_generate_inactive_report() {
     $report_content .= "Total de franqueados inativos: " . count($inactive_users) . "\n";
 
     // Configurar headers para download
-    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Type: text/plain; charset=UTF-8');
     header('Content-Disposition: attachment; filename="relatorio_fujoes_' . date('Y-m-d_His') . '.txt"');
     header('Pragma: no-cache');
     header('Expires: 0');
