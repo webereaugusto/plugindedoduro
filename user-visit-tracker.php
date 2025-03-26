@@ -392,6 +392,115 @@ function af_generate_general_report() {
 // Adicionar ação para download do relatório
 add_action('admin_post_download_general_report', 'af_generate_general_report');
 
+// Função para gerar relatório detalhado em TXT
+function af_generate_detailed_report() {
+    if (!current_user_can('manage_options')) {
+        wp_die('Acesso negado');
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'franqueados_visits';
+
+    // Buscar todos os usuários
+    $users = $wpdb->get_results(
+        "SELECT DISTINCT u.ID, u.display_name, u.user_email
+        FROM {$wpdb->users} u
+        ORDER BY u.display_name"
+    );
+
+    // Gerar conteúdo do relatório
+    $report_content = "RELATÓRIO DETALHADO DE ACESSOS DE FRANQUEADOS\n";
+    $report_content .= "Data de geração: " . date_i18n('d/m/Y H:i:s') . "\n";
+    $report_content .= str_repeat("=", 100) . "\n\n";
+
+    foreach ($users as $user) {
+        // Buscar todas as visitas do usuário
+        $visits = $wpdb->get_results($wpdb->prepare(
+            "SELECT visit_date, page_url, page_title, session_id
+            FROM $table_name
+            WHERE user_id = %d
+            ORDER BY visit_date DESC",
+            $user->ID
+        ));
+
+        $report_content .= "FRANQUEADO: " . $user->display_name . "\n";
+        $report_content .= "E-mail: " . $user->user_email . "\n";
+        
+        if (empty($visits)) {
+            $report_content .= "Nenhum acesso registrado\n";
+        } else {
+            $report_content .= "\nHistórico de Acessos:\n";
+            $report_content .= str_pad("Data/Hora", 20);
+            $report_content .= str_pad("Página", 50);
+            $report_content .= "Título\n";
+            $report_content .= str_repeat("-", 100) . "\n";
+
+            $current_session = '';
+            foreach ($visits as $visit) {
+                // Se mudou a sessão, adiciona uma linha separadora
+                if ($current_session != $visit->session_id) {
+                    if ($current_session != '') {
+                        $report_content .= str_repeat("-", 100) . "\n";
+                    }
+                    $current_session = $visit->session_id;
+                }
+
+                $report_content .= str_pad(
+                    date_i18n('d/m/Y H:i:s', strtotime($visit->visit_date)),
+                    20
+                );
+                $report_content .= str_pad(
+                    substr($visit->page_url, 0, 48),
+                    50
+                );
+                $report_content .= substr($visit->page_title, 0, 50) . "\n";
+            }
+        }
+        
+        // Adicionar estatísticas do usuário
+        $stats = $wpdb->get_row($wpdb->prepare(
+            "SELECT 
+                COUNT(DISTINCT session_id) as total_sessions,
+                COUNT(*) as total_pageviews
+            FROM $table_name
+            WHERE user_id = %d",
+            $user->ID
+        ));
+
+        $report_content .= "\nEstatísticas:\n";
+        $report_content .= "Total de sessões: " . ($stats->total_sessions ?: '0') . "\n";
+        $report_content .= "Total de páginas visitadas: " . ($stats->total_pageviews ?: '0') . "\n";
+        $report_content .= "\n" . str_repeat("=", 100) . "\n\n";
+    }
+
+    // Adicionar totais gerais ao final do relatório
+    $totals = $wpdb->get_row(
+        "SELECT 
+            COUNT(DISTINCT user_id) as total_users,
+            COUNT(DISTINCT session_id) as total_sessions,
+            COUNT(*) as total_pageviews
+        FROM $table_name"
+    );
+
+    $report_content .= "TOTAIS GERAIS:\n";
+    $report_content .= "Total de usuários que já acessaram: " . ($totals->total_users ?: '0') . "\n";
+    $report_content .= "Total de sessões: " . ($totals->total_sessions ?: '0') . "\n";
+    $report_content .= "Total de páginas visitadas: " . ($totals->total_pageviews ?: '0') . "\n";
+
+    // Configurar headers para download
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="relatorio_detalhado_' . date('Y-m-d_His') . '.txt"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    // Enviar conteúdo
+    echo $report_content;
+    exit;
+}
+
+// Adicionar ação para download do relatório detalhado
+add_action('admin_post_download_detailed_report', 'af_generate_detailed_report');
+
 // Função para exibir a página de relatórios
 function af_display_reports_page() {
     ?>
@@ -400,12 +509,24 @@ function af_display_reports_page() {
 
         <div class="af-reports-section">
             <h2>Relatório Geral</h2>
-            <p>Gere um relatório completo com todo o histórico de acessos dos franqueados.</p>
+            <p>Gere um relatório resumido com o histórico de acessos dos franqueados.</p>
             
             <div class="af-report-download">
                 <form method="get" action="<?php echo admin_url('admin-post.php'); ?>">
                     <input type="hidden" name="action" value="download_general_report">
-                    <?php submit_button('Baixar Relatório TXT', 'primary', 'submit', false); ?>
+                    <?php submit_button('Baixar Relatório Geral TXT', 'primary', 'submit', false); ?>
+                </form>
+            </div>
+        </div>
+
+        <div class="af-reports-section">
+            <h2>Relatório Detalhado</h2>
+            <p>Gere um relatório completo mostrando todas as visitas de cada franqueado, incluindo datas, horários e páginas acessadas.</p>
+            
+            <div class="af-report-download">
+                <form method="get" action="<?php echo admin_url('admin-post.php'); ?>">
+                    <input type="hidden" name="action" value="download_detailed_report">
+                    <?php submit_button('Baixar Relatório Detalhado TXT', 'primary', 'submit', false); ?>
                 </form>
             </div>
         </div>
