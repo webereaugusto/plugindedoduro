@@ -1,0 +1,134 @@
+.user-visit-tracker-wrap {
+    margin: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.user-visit-tracker-wrap h1 {
+    color: #23282d;
+    font-size: 23px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Estilos para a página de alertas */
+.af-alerts-form {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.af-alerts-form .form-table th {
+    width: 200px;
+    padding: 20px 10px 20px 0;
+}
+
+.af-alerts-form .form-table td {
+    padding: 20px 10px;
+}
+
+.af-alerts-form .description {
+    margin-top: 5px;
+    color: #666;
+}
+
+.af-alerts-actions {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.af-alerts-actions h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #1d2327;
+}
+
+/* Estilos gerais */
+.page-title-action {
+    margin-left: 15px;
+    padding: 4px 8px;
+    position: relative;
+    top: -3px;
+    text-decoration: none;
+    border: 1px solid #2271b1;
+    border-radius: 2px;
+    background: #2271b1;
+    color: #fff;
+    font-size: 13px;
+    line-height: normal;
+    transition: all .2s ease-in-out;
+}
+
+.page-title-action:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.wp-list-table {
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.wp-list-table th {
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+}
+
+.wp-list-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.wp-list-table tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+.tablenav {
+    margin: 15px 0;
+}
+
+.tablenav select {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.tablenav .button {
+    vertical-align: middle;
+}
+
+a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+/* Notificações */
+.notice {
+    margin: 20px 0;
+    padding: 12px;
+    border-left: 4px solid #00a32a;
+    background: #fff;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.notice-success {
+    border-color: #00a32a;
+}
+
+.notice p {
+    margin: 0;
+    padding: 0;
+} 
