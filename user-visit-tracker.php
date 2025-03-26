@@ -501,6 +501,80 @@ function af_generate_detailed_report() {
 // Adicionar ação para download do relatório detalhado
 add_action('admin_post_download_detailed_report', 'af_generate_detailed_report');
 
+// Função para gerar relatório de Fujões em TXT
+function af_generate_inactive_report() {
+    if (!current_user_can('manage_options')) {
+        wp_die('Acesso negado');
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'franqueados_visits';
+
+    // Obter período do filtro (padrão: 30 dias)
+    $days = isset($_GET['days']) ? intval($_GET['days']) : 30;
+
+    // Buscar usuários que não acessaram no período
+    $query = $wpdb->prepare(
+        "SELECT u.ID, u.display_name, u.user_email, 
+        MAX(v.visit_date) as last_visit,
+        DATEDIFF(UTC_TIMESTAMP(), MAX(v.visit_date)) as days_inactive
+        FROM {$wpdb->users} u
+        LEFT JOIN $table_name v ON u.ID = v.user_id
+        GROUP BY u.ID
+        HAVING last_visit IS NULL 
+        OR last_visit < DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d DAY)
+        ORDER BY last_visit DESC",
+        $days
+    );
+
+    $inactive_users = $wpdb->get_results($query);
+
+    // Gerar conteúdo do relatório
+    $report_content = "RELATÓRIO DE FUJÕES - FRANQUEADOS INATIVOS\n";
+    $report_content .= "Data de geração: " . date_i18n('d/m/Y H:i:s') . "\n";
+    $report_content .= "Período analisado: últimos " . $days . " dias\n";
+    $report_content .= str_repeat("=", 100) . "\n\n";
+
+    // Cabeçalho da tabela
+    $report_content .= str_pad("Nome", 30);
+    $report_content .= str_pad("E-mail", 35);
+    $report_content .= str_pad("Último Acesso", 20);
+    $report_content .= "Dias Inativo\n";
+    $report_content .= str_repeat("-", 100) . "\n";
+
+    foreach ($inactive_users as $user) {
+        $last_visit = $user->last_visit 
+            ? date_i18n('d/m/Y H:i', strtotime($user->last_visit))
+            : 'Nunca acessou';
+            
+        $days_inactive = $user->last_visit 
+            ? $user->days_inactive 
+            : 'N/A';
+
+        $report_content .= str_pad(substr($user->display_name, 0, 29), 30);
+        $report_content .= str_pad(substr($user->user_email, 0, 34), 35);
+        $report_content .= str_pad($last_visit, 20);
+        $report_content .= $days_inactive . "\n";
+    }
+
+    // Adicionar totais ao final do relatório
+    $report_content .= "\n" . str_repeat("-", 100) . "\n";
+    $report_content .= "Total de franqueados inativos: " . count($inactive_users) . "\n";
+
+    // Configurar headers para download
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="relatorio_fujoes_' . date('Y-m-d_His') . '.txt"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    // Enviar conteúdo
+    echo $report_content;
+    exit;
+}
+
+// Adicionar ação para download do relatório de Fujões
+add_action('admin_post_download_inactive_report', 'af_generate_inactive_report');
+
 // Função para exibir a página de relatórios
 function af_display_reports_page() {
     ?>
@@ -527,6 +601,23 @@ function af_display_reports_page() {
                 <form method="get" action="<?php echo admin_url('admin-post.php'); ?>">
                     <input type="hidden" name="action" value="download_detailed_report">
                     <?php submit_button('Baixar Relatório Detalhado TXT', 'primary', 'submit', false); ?>
+                </form>
+            </div>
+        </div>
+
+        <div class="af-reports-section">
+            <h2>Relatório de Fujões</h2>
+            <p>Gere um relatório mostrando os franqueados que não acessaram o site no período selecionado.</p>
+            
+            <div class="af-report-download">
+                <form method="get" action="<?php echo admin_url('admin-post.php'); ?>">
+                    <input type="hidden" name="action" value="download_inactive_report">
+                    <select name="days">
+                        <option value="7">Últimos 7 dias</option>
+                        <option value="30" selected>Últimos 30 dias</option>
+                        <option value="90">Últimos 90 dias</option>
+                    </select>
+                    <?php submit_button('Baixar Relatório de Fujões TXT', 'primary', 'submit', false); ?>
                 </form>
             </div>
         </div>
