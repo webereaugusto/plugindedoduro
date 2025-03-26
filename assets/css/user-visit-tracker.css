@@ -1,0 +1,160 @@
+.user-visit-tracker-wrap {
+    margin: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.user-visit-tracker-wrap h1 {
+    color: #23282d;
+    font-size: 23px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Estilos gerais */
+.page-title-action {
+    margin-left: 15px;
+    padding: 4px 8px;
+    position: relative;
+    top: -3px;
+    text-decoration: none;
+    border: 1px solid #2271b1;
+    border-radius: 2px;
+    background: #2271b1;
+    color: #fff;
+    font-size: 13px;
+    line-height: normal;
+    transition: all .2s ease-in-out;
+}
+
+.page-title-action:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.wp-list-table {
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.wp-list-table th {
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+}
+
+.wp-list-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.wp-list-table tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+.tablenav {
+    margin: 15px 0;
+}
+
+.tablenav select {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.tablenav .button {
+    vertical-align: middle;
+}
+
+a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+/* Estilos para o botão de download do relatório */
+.af-report-download {
+    background: #f0f6fc;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #c3c4c7;
+}
+
+.af-report-download form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.af-report-download input[type="number"] {
+    width: 80px !important;
+    height: 30px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    padding: 0 8px;
+}
+
+.af-report-download label {
+    font-size: 13px;
+    color: #1d2327;
+}
+
+/* Estilos para a página de relatórios */
+.af-reports-section {
+    background: #fff;
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.af-reports-section h2 {
+    margin-top: 0;
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.af-reports-section p {
+    color: #50575e;
+    font-size: 13px;
+    margin: 1em 0;
+}
+
+.af-report-download {
+    background: #f0f6fc;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #c3c4c7;
+    margin-top: 15px;
+}
+
+.af-report-download form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.af-report-download select {
+    min-width: 200px;
+    height: 30px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    padding: 0 24px 0 8px;
+}
+
+.af-report-download label {
+    font-size: 13px;
+    color: #1d2327;
+    display: flex;
+    align-items: center;
+} 

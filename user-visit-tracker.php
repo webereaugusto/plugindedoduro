@@ -3,7 +3,7 @@
  * Plugin Name: Acessos de Franqueados
  * Plugin URI: https://megacubbo.com.br
  * Description: Registra e fornece relatórios sobre as visitas dos usuários cadastrados no WordPress
- * Version: 1.1.1
+ * Version: 1.2.0
  * Author: Weber E. Augusto
  * Author URI: https://megacubbo.com.br
  * Text Domain: acessos-franqueados
@@ -14,15 +14,13 @@
  * - Relatório de visitas com filtros
  * - Visualização detalhada por franqueado
  * 
- * 1.1.0 - Adição do sistema de alertas
- * - Sistema de alertas de inatividade
- * - Configurações de alertas (ativar/desativar, modo de teste, dias de inatividade)
- * - Envio manual e automático de alertas
- * - Sistema de feedback detalhado para envio de alertas
- * 
  * 1.1.1 - Correção do fuso horário
  * - Ajuste do fuso horário para São Paulo/Brasil
  * - Correção na exibição das datas e horários
+ * 
+ * 1.2.0 - Simplificação do plugin
+ * - Remoção do sistema de alertas
+ * - Foco apenas no registro e visualização de acessos
  */
 
 // Prevenir acesso direto ao arquivo
@@ -128,6 +126,19 @@ function af_add_hidden_submenu() {
     );
 }
 add_action('admin_menu', 'af_add_hidden_submenu');
+
+// Adicionar submenu para Relatórios
+function af_add_reports_submenu() {
+    add_submenu_page(
+        'acessos-franqueados',
+        'Relatórios',
+        'Relatórios',
+        'manage_options',
+        'franqueados-relatorios',
+        'af_display_reports_page'
+    );
+}
+add_action('admin_menu', 'af_add_reports_submenu');
 
 // Função para formatar data e hora no fuso horário correto
 function af_format_datetime($mysql_date, $format = 'd/m/Y H:i:s') {
@@ -298,287 +309,106 @@ function af_display_report() {
     <?php
 }
 
-// Registrar configurações
-function af_register_settings() {
-    register_setting('af_alerts_options', 'af_alerts_enabled', 'boolval');
-    register_setting('af_alerts_options', 'af_alerts_test_mode', 'boolval');
-    register_setting('af_alerts_options', 'af_alerts_days_threshold', 'intval');
-}
-add_action('admin_init', 'af_register_settings');
-
-// Adicionar submenu para Alertas
-function af_add_alerts_submenu() {
-    add_submenu_page(
-        'acessos-franqueados',
-        'Alertas de Inatividade',
-        'Alertas',
-        'manage_options',
-        'franqueados-alertas',
-        'af_display_alerts_page'
-    );
-}
-add_action('admin_menu', 'af_add_alerts_submenu');
-
-// Função para enviar e-mail de teste
-function af_send_test_alert() {
-    if (!check_admin_referer('af_send_test_email')) {
-        wp_die('Ação não autorizada');
-    }
-
-    // Usar o e-mail fornecido ou o e-mail do usuário atual como fallback
-    $test_email = !empty($_POST['test_email']) ? sanitize_email($_POST['test_email']) : '';
-    if (empty($test_email)) {
-        $current_user = wp_get_current_user();
-        $test_email = $current_user->user_email;
-    }
-
-    if (!is_email($test_email)) {
-        wp_safe_redirect(add_query_arg(array(
-            'page' => 'franqueados-alertas',
-            'error' => 'invalid_email',
-            'message' => urlencode('E-mail inválido: ' . esc_html($test_email))
-        ), admin_url('admin.php')));
-        exit;
-    }
-    
-    // Preparar o e-mail de teste
-    $subject = '[TESTE] Alerta de Inatividade - Área do Franqueado';
-    $message = "Olá,\n\n";
-    $message .= "Este é um e-mail de teste do sistema de alertas de inatividade.\n";
-    $message .= "Se você está recebendo este e-mail, significa que o sistema está configurado corretamente.\n\n";
-    $message .= "Equipe de Franquias - Grupo VOLL";
-    
-    $headers = array(
-        'Content-Type: text/plain; charset=UTF-8',
-        'From: Grupo VOLL <noreply@franquiadepilates.com.br>'
-    );
-
-    // Tentar enviar o e-mail
-    try {
-        if (!function_exists('wp_mail')) {
-            throw new Exception('Função wp_mail não está disponível');
-        }
-
-        $success = wp_mail($test_email, $subject, $message, $headers);
-        
-        if ($success) {
-            wp_safe_redirect(add_query_arg(array(
-                'page' => 'franqueados-alertas',
-                'status' => 'success',
-                'message' => urlencode("E-mail de teste enviado com sucesso para {$test_email}")
-            ), admin_url('admin.php')));
-            exit;
-        } else {
-            throw new Exception('Falha no envio do e-mail - verifique as configurações SMTP');
-        }
-    } catch (Exception $e) {
-        wp_safe_redirect(add_query_arg(array(
-            'page' => 'franqueados-alertas',
-            'error' => 'send_failed',
-            'message' => urlencode('Erro ao tentar enviar e-mail: ' . $e->getMessage())
-        ), admin_url('admin.php')));
-        exit;
-    }
-}
-
-// Função para exibir a página de alertas
-function af_display_alerts_page() {
-    // Verificar se o formulário foi enviado
-    if (isset($_POST['af_send_test_email'])) {
-        check_admin_referer('af_send_test_email');
-        af_send_test_alert();
-        return;
-    } elseif (isset($_POST['af_send_alerts'])) {
-        check_admin_referer('af_send_alerts');
-        af_process_alerts();
-        return;
-    }
-
-    $enabled = get_option('af_alerts_enabled', false);
-    $test_mode = get_option('af_alerts_test_mode', true);
-    $days_threshold = get_option('af_alerts_days_threshold', 7);
-    ?>
-    <div class="wrap user-visit-tracker-wrap">
-        <h1>Alertas de Inatividade</h1>
-
-        <?php if (isset($_GET['status']) && $_GET['status'] === 'success'): ?>
-            <div class="notice notice-success is-dismissible">
-                <p><?php echo esc_html(urldecode($_GET['message'])); ?></p>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($_GET['error'])): ?>
-            <div class="notice notice-error is-dismissible">
-                <p><?php echo esc_html(urldecode($_GET['message'])); ?></p>
-            </div>
-        <?php endif; ?>
-
-        <form method="post" action="options.php" class="af-alerts-form">
-            <?php settings_fields('af_alerts_options'); ?>
-            
-            <table class="form-table">
-                <tr>
-                    <th scope="row">Ativar Alertas</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="af_alerts_enabled" value="1" <?php checked($enabled); ?>>
-                            Enviar alertas para franqueados inativos
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Modo de Teste</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="af_alerts_test_mode" value="1" <?php checked($test_mode); ?>>
-                            Enviar alertas apenas para administradores
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Dias de Inatividade</th>
-                    <td>
-                        <input type="number" name="af_alerts_days_threshold" value="<?php echo esc_attr($days_threshold); ?>" min="1" max="365" class="small-text">
-                        <p class="description">Enviar alerta após quantos dias sem acesso</p>
-                    </td>
-                </tr>
-            </table>
-
-            <?php submit_button('Salvar Configurações'); ?>
-        </form>
-
-        <div class="af-alerts-actions">
-            <h2>Ações</h2>
-            
-            <!-- Formulário de E-mail de Teste -->
-            <div class="af-test-email-form" style="margin-bottom: 20px;">
-                <form method="post" style="display: flex; align-items: flex-end; gap: 10px;">
-                    <?php wp_nonce_field('af_send_test_email'); ?>
-                    <div>
-                        <label for="test_email" style="display: block; margin-bottom: 5px;">E-mail para teste:</label>
-                        <input type="email" name="test_email" id="test_email" class="regular-text" 
-                               placeholder="Digite o e-mail para teste" required>
-                    </div>
-                    <input type="hidden" name="af_send_test_email" value="1">
-                    <?php submit_button('Enviar E-mail de Teste', 'secondary', 'submit', false); ?>
-                </form>
-            </div>
-
-            <!-- Formulário de Processamento de Alertas -->
-            <form method="post">
-                <?php wp_nonce_field('af_send_alerts'); ?>
-                <input type="hidden" name="af_send_alerts" value="1">
-                <?php submit_button('Processar Alertas Agora', 'primary', 'submit', false); ?>
-            </form>
-        </div>
-    </div>
-    <?php
-}
-
-// Função para processar todos os alertas
-function af_process_alerts() {
-    if (!get_option('af_alerts_enabled', false)) {
-        wp_redirect(add_query_arg(array(
-            'error' => 'disabled',
-            'message' => urlencode('O sistema de alertas está desativado. Ative-o nas configurações.')
-        ), wp_get_referer()));
-        exit;
+// Função para gerar relatório geral em TXT
+function af_generate_general_report() {
+    if (!current_user_can('manage_options')) {
+        wp_die('Acesso negado');
     }
 
     global $wpdb;
     $table_name = $wpdb->prefix . 'franqueados_visits';
-    $days_threshold = get_option('af_alerts_days_threshold', 7);
-    $test_mode = get_option('af_alerts_test_mode', true);
 
-    // Buscar usuários inativos
-    $query = $wpdb->prepare(
-        "SELECT DISTINCT u.* 
-        FROM {$wpdb->users} u 
-        LEFT JOIN (
-            SELECT user_id, MAX(visit_date) as last_visit 
-            FROM {$table_name} 
-            GROUP BY user_id
-        ) v ON u.ID = v.user_id 
-        WHERE v.last_visit IS NULL 
-        OR v.last_visit < DATE_SUB(NOW(), INTERVAL %d DAY)",
-        $days_threshold
-    );
+    // Buscar dados dos usuários e suas visitas (todo histórico)
+    $query = "SELECT 
+        u.display_name,
+        u.user_email,
+        COUNT(DISTINCT v.session_id) as total_sessions,
+        COUNT(v.id) as total_pageviews,
+        MAX(v.visit_date) as last_visit,
+        MIN(v.visit_date) as first_visit
+    FROM {$wpdb->users} u
+    LEFT JOIN $table_name v ON u.ID = v.user_id
+    GROUP BY u.ID
+    ORDER BY last_visit DESC";
 
-    if ($test_mode) {
-        $query .= " AND u.ID IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '{$wpdb->prefix}capabilities' AND meta_value LIKE '%administrator%')";
-    }
+    $users_data = $wpdb->get_results($query);
 
-    $inactive_users = $wpdb->get_results($query);
+    // Gerar conteúdo do relatório
+    $report_content = "RELATÓRIO GERAL DE ACESSOS DE FRANQUEADOS\n";
+    $report_content .= "Data de geração: " . date_i18n('d/m/Y H:i:s') . "\n\n";
     
-    if (empty($inactive_users)) {
-        wp_redirect(add_query_arg(array(
-            'status' => 'info',
-            'message' => urlencode('Nenhum usuário inativo encontrado no período especificado.')
-        ), wp_get_referer()));
-        exit;
+    // Cabeçalho da tabela
+    $report_content .= str_pad("Nome", 30);
+    $report_content .= str_pad("E-mail", 35);
+    $report_content .= str_pad("Último Acesso", 20);
+    $report_content .= str_pad("Primeiro Acesso", 20);
+    $report_content .= str_pad("Sessões", 10);
+    $report_content .= "Páginas Visitadas\n";
+    
+    $report_content .= str_repeat("-", 120) . "\n";
+
+    foreach ($users_data as $user) {
+        $last_visit = $user->last_visit 
+            ? date_i18n('d/m/Y H:i', strtotime($user->last_visit))
+            : 'Nunca acessou';
+            
+        $first_visit = $user->first_visit
+            ? date_i18n('d/m/Y H:i', strtotime($user->first_visit))
+            : 'Nunca acessou';
+
+        $report_content .= str_pad(substr($user->display_name, 0, 29), 30);
+        $report_content .= str_pad(substr($user->user_email, 0, 34), 35);
+        $report_content .= str_pad($last_visit, 20);
+        $report_content .= str_pad($first_visit, 20);
+        $report_content .= str_pad($user->total_sessions ?: '0', 10);
+        $report_content .= $user->total_pageviews ?: '0';
+        $report_content .= "\n";
     }
 
-    $emails_sent = 0;
-    $failed_emails = array();
+    // Adicionar totais ao final do relatório
+    $totals = $wpdb->get_row("SELECT 
+        COUNT(DISTINCT user_id) as total_users,
+        COUNT(DISTINCT session_id) as total_sessions,
+        COUNT(*) as total_pageviews
+    FROM $table_name");
 
-    foreach ($inactive_users as $user) {
-        if (af_send_inactivity_email($user)) {
-            $emails_sent++;
-        } else {
-            $failed_emails[] = $user->display_name;
-        }
-    }
+    $report_content .= "\n" . str_repeat("-", 120) . "\n";
+    $report_content .= "TOTAIS:\n";
+    $report_content .= "Total de usuários que já acessaram: " . ($totals->total_users ?: '0') . "\n";
+    $report_content .= "Total de sessões: " . ($totals->total_sessions ?: '0') . "\n";
+    $report_content .= "Total de páginas visitadas: " . ($totals->total_pageviews ?: '0') . "\n";
 
-    $redirect_args = array();
+    // Configurar headers para download
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="relatorio_acessos_' . date('Y-m-d_His') . '.txt"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 
-    if ($emails_sent > 0) {
-        $redirect_args['processed'] = $emails_sent;
-    }
-
-    if (!empty($failed_emails)) {
-        $redirect_args['failed'] = implode(',', $failed_emails);
-    }
-
-    if ($test_mode) {
-        $redirect_args['test_mode'] = '1';
-    }
-
-    wp_redirect(add_query_arg($redirect_args, wp_get_referer()));
+    // Enviar conteúdo
+    echo $report_content;
     exit;
 }
 
-// Função para enviar e-mail individual
-function af_send_inactivity_email($user) {
-    $to = $user->user_email;
-    $subject = 'Estamos sentindo sua falta na área de franqueados';
-    
-    $message = "Olá {$user->display_name},\n\n";
-    $message .= "Notamos que já faz um tempo desde sua última visita à área do franqueado. ";
-    $message .= "Temos muitas coisas interessantes para você por lá! Assim que possível acesse:\n\n";
-    $message .= "https://franquiadepilates.com.br/areadofranqueado/\n\n";
-    $message .= "Equipe de Franquias - Grupo VOLL";
+// Adicionar ação para download do relatório
+add_action('admin_post_download_general_report', 'af_generate_general_report');
 
-    $headers = array(
-        'Content-Type: text/plain; charset=UTF-8',
-        'From: Grupo VOLL <noreply@franquiadepilates.com.br>'
-    );
-    
-    return wp_mail($to, $subject, $message, $headers);
-}
+// Função para exibir a página de relatórios
+function af_display_reports_page() {
+    ?>
+    <div class="wrap user-visit-tracker-wrap">
+        <h1>Relatórios de Acessos</h1>
 
-// Agendar envio diário de alertas
-function af_schedule_alerts() {
-    if (!wp_next_scheduled('af_daily_alerts')) {
-        wp_schedule_event(time(), 'daily', 'af_daily_alerts');
-    }
-}
-add_action('wp', 'af_schedule_alerts');
-
-// Processar alertas agendados
-function af_process_scheduled_alerts() {
-    if (get_option('af_alerts_enabled', false)) {
-        af_process_alerts();
-    }
-}
-add_action('af_daily_alerts', 'af_process_scheduled_alerts'); 
-add_action('af_daily_alerts', 'af_process_scheduled_alerts'); 
+        <div class="af-reports-section">
+            <h2>Relatório Geral</h2>
+            <p>Gere um relatório completo com todo o histórico de acessos dos franqueados.</p>
+            
+            <div class="af-report-download">
+                <form method="get" action="<?php echo admin_url('admin-post.php'); ?>">
+                    <input type="hidden" name="action" value="download_general_report">
+                    <?php submit_button('Baixar Relatório TXT', 'primary', 'submit', false); ?>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php
+} 
